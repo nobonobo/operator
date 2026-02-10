@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,11 +19,16 @@ func New() *Operator {
 	return &Operator{Endpoint: endpoint}
 }
 
-func (op *Operator) Pub(address string, data []byte) error {
+func (op *Operator) Pub(ctx context.Context, address string, data []byte) error {
 	params := url.Values{}
 	params.Set("address", address)
 	params.Set("data", string(data))
-	resp, err := http.Post(op.Endpoint+"/pub", "application/x-www-form-urlencoded", strings.NewReader(params.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, op.Endpoint+"/pub", strings.NewReader(params.Encode()))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -33,10 +39,15 @@ func (op *Operator) Pub(address string, data []byte) error {
 	return nil
 }
 
-func (op *Operator) Sub(address string) ([]byte, error) {
+func (op *Operator) Sub(ctx context.Context, address string) ([]byte, error) {
 	params := url.Values{}
 	params.Set("address", address)
-	resp, err := http.Post(op.Endpoint+"/sub", "application/x-www-form-urlencoded", strings.NewReader(params.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, op.Endpoint+"/sub", strings.NewReader(params.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
